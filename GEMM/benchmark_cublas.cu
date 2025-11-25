@@ -101,7 +101,7 @@ int main() {
         {1024, 1024, 1024},
         {2048, 2048, 2048},
         {4096, 4096, 4096},
-        {8192, 8192, 8191},
+        {8192, 8192, 8192},
         {8192, 4096, 8192},
         {4096, 8192, 4096},
     };
@@ -176,31 +176,61 @@ int main() {
         CUDA_CHECK(cudaDeviceSynchronize());
 
         // Reset C to initial values before timing
-        CUDA_CHECK(cudaMemcpy(d_C, h_C_initial.data(), size_C, cudaMemcpyHostToDevice));
+        // CUDA_CHECK(cudaMemcpy(d_C, h_C_initial.data(), size_C, cudaMemcpyHostToDevice));
 
-        // Benchmark - single iteration
-        std::cout << "Timing single iteration..." << std::endl;
-        CUDA_CHECK(cudaEventRecord(start));
+        // CUDA_CHECK(cudaEventRecord(start));
 
-        CUBLAS_CHECK(cublasSgemm(
-            handle,
-            CUBLAS_OP_N, CUBLAS_OP_N,
-            N, M, K,
-            &alpha,
-            d_B, N,
-            d_A, K,
-            &beta,
-            d_C, N
-        ));
+        // CUBLAS_CHECK(cublasSgemm(
+        //     handle,
+        //     CUBLAS_OP_N, CUBLAS_OP_N,
+        //     N, M, K,
+        //     &alpha,
+        //     d_B, N,
+        //     d_A, K,
+        //     &beta,
+        //     d_C, N
+        // ));
 
-        CUDA_CHECK(cudaEventRecord(stop));
-        CUDA_CHECK(cudaEventSynchronize(stop));
+        // CUDA_CHECK(cudaEventRecord(stop));
+        // CUDA_CHECK(cudaEventSynchronize(stop));
 
-        float time_ms = 0;
-        CUDA_CHECK(cudaEventElapsedTime(&time_ms, start, stop));
+        // float time_ms = 0;
+        // CUDA_CHECK(cudaEventElapsedTime(&time_ms, start, stop));
 
-        // Copy result back
-        CUDA_CHECK(cudaMemcpy(h_C_gpu.data(), d_C, size_C, cudaMemcpyDeviceToHost));
+        // // Copy result back
+        // CUDA_CHECK(cudaMemcpy(h_C_gpu.data(), d_C, size_C, cudaMemcpyDeviceToHost));
+        const int num_runs = 10;  // Or 100 for smaller matrices
+        std::vector<float> times;
+
+        for (int run = 0; run < num_runs; run++) {
+            // Reset C to initial state (OUTSIDE timing for each run)
+            CUDA_CHECK(cudaMemcpy(d_C, h_C_initial.data(), size_C, cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaDeviceSynchronize());  // Ensure memcpy completes
+            
+            CUDA_CHECK(cudaEventRecord(start));
+            CUBLAS_CHECK(cublasSgemm(
+                handle,
+                CUBLAS_OP_N, CUBLAS_OP_N,
+                N, M, K,
+                &alpha,
+                d_B, N,
+                d_A, K,
+                &beta,
+                d_C, N
+            ));
+            CUDA_CHECK(cudaEventRecord(stop));
+            CUDA_CHECK(cudaEventSynchronize(stop));
+            
+            float time_ms = 0;
+            CUDA_CHECK(cudaEventElapsedTime(&time_ms, start, stop));
+            times.push_back(time_ms);
+        }
+
+        // Use MINIMUM or MEDIAN time (not average!)
+        std::sort(times.begin(), times.end());
+
+        float time_ms = times[0]; // Minimum time 
+
         
         // GFLOPS
         double total_flops = 2.0 * M * N * K;
@@ -231,7 +261,7 @@ int main() {
         // Save to CSV
         file << M << "," << K << "," << N << ","
              << time_ms << "," << gflops << ","
-             << memory_bw << "," << efficiency << "," <<"\n";
+             << memory_bw << "," << efficiency <<"\n";
             //  << (verified ? "PASS" : "SKIP") << "\n";
         file.flush();
 

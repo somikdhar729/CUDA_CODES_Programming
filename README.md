@@ -2,7 +2,7 @@
 Exploring CUDA
 
 To run any CUDA file
->> nvcc <.cu file name> -o <output_name>
+> nvcc <.cu file name> -o <output_name>
 
 To run it using cuBLAS
->> nvcc <.cu file name> -o <output_name> -lcublas
+> nvcc <.cu file name> -o <output_name> -lcublas

@@ -8,7 +8,7 @@ __global__ void reduction_1(const float* input, float* output, int N){
     sOut[tid] = (gid < N) ? input[gid] : 0.0f;
     __syncthreads();
 
-    for(int i = 1;i < blockDim.x;i<<=2){
+    for(int i = 1;i < blockDim.x;i<<=1){
         if(tid % (2*i) == 0){
             sOut[tid] += sOut[tid + i];
         }
@@ -28,7 +28,7 @@ __global__ void reduction_2(const float* input, float* output, int N){
     sOut[tid] = (gid < N) ? input[gid] : 0.0f;
     __syncthreads();
 
-    for(int i = 1;i < blockDim.x;i *= 2){
+    for(int i = 1;i < blockDim.x;i *= 1){
         int index = 2 * i * tid;
         if(index < blockDim.x){
             sOut[index] += sOut[index + i];

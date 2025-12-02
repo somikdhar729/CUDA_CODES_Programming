@@ -28,7 +28,7 @@ __global__ void reduction_2(const float* input, float* output, int N){
     sOut[tid] = (gid < N) ? input[gid] : 0.0f;
     __syncthreads();
 
-    for(int i = 1;i < blockDim.x;i *= 1){
+    for(int i = 1;i < blockDim.x;i <<= 1){
         int index = 2 * i * tid;
         if(index < blockDim.x){
             sOut[index] += sOut[index + i];
@@ -39,6 +39,7 @@ __global__ void reduction_2(const float* input, float* output, int N){
     if(tid == 0){
         output[blockIdx.x] = sOut[0];
     }
+}
 
 __global__ void reduction_3(const float* input, float* output, int N){
     extern __shared__ float sout[];
@@ -154,4 +155,4 @@ __global__ void reduction_6(const float* input, float* output, int N){
     }
 }
 
-}
+

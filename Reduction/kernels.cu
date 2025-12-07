@@ -107,9 +107,11 @@ sdata[tid] += sdata[tid + 1];
 __global__ void reduction_5(const float* input, float* output, int N){
     extern __shared__ float sOut[];
     int tid = threadIdx.x;
-    int gid = blockDim.x * blockIdx.x + threadIdx.x;
+    int gid = 2*blockDim.x * blockIdx.x + threadIdx.x;
 
-    sOut[tid] = (gid < N) ? input[gid] : 0.0f;
+    // sOut[tid] = (gid < N) ? input[gid] : 0.0f;
+    sOut[tid] = (gid < N ? input[gid] : 0.0f) 
+        + (gid + blockDim.x < N ? input[gid + blockDim.x] : 0.0f);
     __syncthreads();
 
     for(int i = blockDim.x / 2;i > 32;i >>=1){

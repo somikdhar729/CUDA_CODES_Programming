@@ -34,7 +34,8 @@ int main(){
     // std::ofstream file("reduction_benchmark_results_kernel_2.csv");
     // std::ofstream file("reduction_benchmark_results_kernel_3. csv");
     // std::ofstream file("reduction_benchmark_results_kernel_4.csv");
-    std::ofstream file("reduction_benchmark_results_kernel_5.csv");
+    // std::ofstream file("reduction_benchmark_results_kernel_5.csv");
+    std::ofstream file("reduction_benchmark_results_kernel_6.csv");
     file << "Array Size,Time (ms),Throughput (GB/s),Efficiency (%),Verified" << std::endl;
 
     // Array Sizes
@@ -56,7 +57,7 @@ int main(){
         // CPU reference result
         float cpu_result = cpu_reduce(h_data);
 
-        int blocksPerGrid = (size + 2*threadsPerBlock - 1) / (2*threadsPerBlock);
+        int blocksPerGrid = (size + threadsPerBlock - 1) / (threadsPerBlock);
         int sharedMemSize = threadsPerBlock * sizeof(float);
 
         // Allocate device memory
@@ -86,12 +87,13 @@ int main(){
             
             int curr_N = size;
             while(curr_N > 1){
-                blocksPerGrid = (curr_N + 2*threadsPerBlock - 1) / (2*threadsPerBlock);
+                blocksPerGrid = (curr_N + threadsPerBlock - 1) / (threadsPerBlock);
                 // reduction_1<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_2<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_3<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_4<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
-                reduction_5<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
+                // reduction_5<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
+                reduction_6<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 curr_N = blocksPerGrid;
                 d_src = d_dst;
                 d_dst = (d_dst == d_in_temp) ? d_out_temp : d_in_temp;
@@ -111,12 +113,13 @@ int main(){
             
             int curr_N = size;
             while(curr_N > 1){
-                blocksPerGrid = (curr_N + 2*threadsPerBlock - 1) / (2*threadsPerBlock);
+                blocksPerGrid = (curr_N + threadsPerBlock - 1) / (threadsPerBlock);
                 // reduction_1<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_2<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_3<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 // reduction_4<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
-                reduction_5<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
+                // reduction_5<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
+                reduction_6<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(d_src, d_dst, curr_N);
                 curr_N = blocksPerGrid;
                 d_src = d_dst;
                 d_dst = (d_dst == d_in_temp) ? d_out_temp : d_in_temp;

@@ -1,4 +1,4 @@
-#include "kernels.h"
+#include "kernels.cuh"
 
 __global__ void reduction_1(const float* input, float* output, int N){
     extern __shared__ float sOut[];

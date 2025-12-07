@@ -35,7 +35,7 @@ int main(){
     // std::ofstream file("reduction_benchmark_results_kernel_3. csv");
     // std::ofstream file("reduction_benchmark_results_kernel_4.csv");
     // std::ofstream file("reduction_benchmark_results_kernel_5.csv");
-    std::ofstream file("reduction_benchmark_results_kernel_6.csv");
+    std::ofstream file("reduction_benchmark_results_kernel_6_1.csv");
     file << "Array Size,Time (ms),Throughput (GB/s),Efficiency (%),Verified" << std::endl;
 
     // Array Sizes
@@ -127,6 +127,7 @@ int main(){
             
             CUDA_CHECK(cudaEventRecord(stop));
             CUDA_CHECK(cudaEventSynchronize(stop));
+            CUDA_CHECK(cudaDeviceSynchronize());
             
             float run_time_ms = 0.0f;
             CUDA_CHECK(cudaEventElapsedTime(&run_time_ms, start, stop));
@@ -149,7 +150,7 @@ int main(){
         float relative_error = error / std::abs(cpu_result);
         
         // Sort times and get minimum
-        std::sort(times. begin(), times.end());
+        std::sort(times.begin(), times.end());
         float time_ms = times[0]; // Minimum time 
         
         // Calculate total bytes transferred (accurate method)
@@ -159,7 +160,7 @@ int main(){
         
         while(curr_N > 1){
             total_elements += curr_N; // Read curr_N elements
-            temp_blocks = (curr_N + threadsPerBlock - 1) / threadsPerBlock;
+            temp_blocks = (curr_N + threadsPerBlock - 1) / (threadsPerBlock);
             if(temp_blocks > 1) {
                 total_elements += temp_blocks; // Write temp_blocks elements
             }

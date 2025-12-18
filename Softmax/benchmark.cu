@@ -72,12 +72,19 @@ int main(){
         for(int i = 0; i < 3; ++i){
             // std::cout << "Warm-up run " << i+1 << " for size: " << size << std::endl;
             // softmax_naive<<<blocksPerGrid, threadsPerBlock, 2* threadsPerBlock * sizeof(float)>>>(d_input, d_output, size);
-            softmax_multi_stage(
+            // softmax_multi_stage(
+            //     d_input,
+            //     d_output,
+            //     size,
+            //     threadsPerBlock
+            // );
+            softmax_online(
                 d_input,
                 d_output,
                 size,
                 threadsPerBlock
             );
+
             
             cudaDeviceSynchronize();
         }
@@ -89,7 +96,13 @@ int main(){
         for(int iter = 0; iter < iterations; ++iter){
             cudaEventRecord(start);
             // softmax_naive<<<blocksPerGrid, threadsPerBlock, 2* threadsPerBlock * sizeof(float)>>>(d_input, d_output, size);
-            softmax_multi_stage(
+            // softmax_multi_stage(
+            //     d_input,
+            //     d_output,
+            //     size,
+            //     threadsPerBlock
+            // );
+            softmax_online(
                 d_input,
                 d_output,
                 size,

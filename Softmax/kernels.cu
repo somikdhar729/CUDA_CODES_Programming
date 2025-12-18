@@ -199,3 +199,139 @@ void softmax_multi_stage(
     cudaFree(d_in_temp);
     cudaFree(d_out_temp);
 }
+
+
+// Kernel 3
+__global__ void max_exp_compute_block(const float* input, float* d_max, float* d_norm, int N){
+    extern __shared__ float sdata[];
+    float* max_vals = sdata;
+    float* norm_vals = &sdata[blockDim.x];
+
+    int tid = threadIdx.x;
+    int gid = threadIdx.x + blockDim.x * blockIdx.x;
+    float thread_max = -FLT_MAX;
+    float norm = 0.0;
+    for (int i = gid; i < N; i += blockDim.x * gridDim.x){
+        if(thread_max > input[i]){
+            norm = norm + __expf(input[i] - thread_max);
+        }        
+        else{
+            
+            norm = norm * __expf(thread_max - input[i]) + 1;
+            thread_max = input[i];
+        }
+    }
+    max_vals[tid] = thread_max;
+    norm_vals[tid] = norm;
+    __syncthreads();
+
+    float max_vals_, norm_vals_;
+    for(int i = blockDim.x / 2; i > 0; i >>= 1){
+        if(tid < i){
+            max_vals_ = fmaxf(max_vals[tid], max_vals[tid + i]);
+            norm_vals_ = norm_vals[tid] * __expf(max_vals[tid] - max_vals_) + norm_vals[tid + i] * __expf(max_vals[tid + i] -  max_vals_);
+            max_vals[tid] = max_vals_;
+            norm_vals[tid] = norm_vals_;
+        }
+        __syncthreads();
+    }
+    float max_val = max_vals[0];
+    float norm_val = norm_vals[0];
+    __syncthreads();
+
+    if(tid == 0){
+        d_max[blockIdx.x] = max_val;
+        d_norm[blockIdx.x] = norm_val;
+    }
+    
+}
+
+__global__ void max_exp_compute(float* d_max, float* d_norm, float* max_g, float* norm_g, int N){
+    extern __shared__ float sdata[];
+    float* max_vals = sdata;
+    float* norm_vals = &sdata[blockDim.x];
+    
+    int tid = threadIdx.x;
+    
+    float thread_max = -FLT_MAX;
+    float norm = 0.0;
+
+    for(int i = tid; i < N; i += blockDim.x){
+        if(thread_max > d_max[i]){
+            norm = norm + d_norm[i] * __expf(d_max[i] - thread_max);
+        }
+        else{
+            norm = d_norm[i] + norm * __expf(thread_max - d_max[i]);
+            thread_max = d_max[i];
+            
+        }
+    }
+    max_vals[tid] = thread_max;
+    norm_vals[tid] = norm;
+    __syncthreads();
+
+    float max_vals_, norm_vals_;
+    for(int i = blockDim.x / 2; i > 0; i >>= 1){
+        if(tid < i){
+            max_vals_ = fmaxf(max_vals[tid], max_vals[tid + i]);
+            norm_vals_ = norm_vals[tid] * __expf(max_vals[tid] - max_vals_) + norm_vals[tid + i] * __expf(max_vals[tid + i] -  max_vals_);
+            max_vals[tid] = max_vals_;
+            norm_vals[tid] = norm_vals_;
+        }
+        __syncthreads();
+    }
+    float max_val = max_vals[0];
+    float norm_val = norm_vals[0];
+    __syncthreads();
+
+    if(tid == 0){
+        max_g[0] = max_val;
+        norm_g[0] = norm_val;
+    }
+    
+
+}
+
+__global__ void normalize(const float* input, float* output, float *max, float * norm, int N){
+    int gid = threadIdx.x + blockDim.x * blockIdx.x;
+    if(gid < N){
+        output[gid] = __expf(input[gid] - max[0]) / norm[0];
+    }
+
+}
+
+void softmax_online(
+    const float* d_input,
+    float* d_output,
+    int size,
+    int threadsPerBlock
+) {
+    int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
+
+    float *d_block_max, *d_block_norm;
+    float *d_global_max, *d_global_norm;
+
+    cudaMalloc(&d_block_max, blocksPerGrid * sizeof(float));
+    cudaMalloc(&d_block_norm, blocksPerGrid * sizeof(float));
+    cudaMalloc(&d_global_max, sizeof(float));
+    cudaMalloc(&d_global_norm, sizeof(float));
+
+    max_exp_compute_block<<<blocksPerGrid, threadsPerBlock,
+                            2 * threadsPerBlock * sizeof(float)>>>(
+        d_input, d_block_max, d_block_norm, size
+    );
+
+    int smem_size = 2 * threadsPerBlock * sizeof(float);
+    max_exp_compute<<<1, threadsPerBlock, smem_size>>>(
+        d_block_max, d_block_norm, d_global_max, d_global_norm, blocksPerGrid
+    );
+
+    normalize<<<blocksPerGrid, threadsPerBlock>>>(
+        d_input, d_output, d_global_max, d_global_norm, size
+    );
+
+    cudaFree(d_block_max);
+    cudaFree(d_block_norm);
+    cudaFree(d_global_max);
+    cudaFree(d_global_norm);
+}
